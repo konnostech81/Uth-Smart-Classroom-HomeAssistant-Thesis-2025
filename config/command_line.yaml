@@ -1,0 +1,50 @@
+- sensor:
+    name: Temperature Outside
+    unique_id: a4c570c6-5eee-42a4-9a83-1b11d74a5136
+    command: "python3 /config/ha_meteo_uth/data_fetcher_v3.py"
+    device_class: temperature
+    state_class: measurement
+    unit_of_measurement: "°C"
+    scan_interval: 600 # Fetch every 10 minutes
+    value_template: "{{ value_json.Temp_Out }}"
+    json_attributes:
+      - Temp_Out
+      - In_Temp
+      - In_Dew
+      - Low_Temp
+      - Hi_Temp
+      - Dew_Pt
+      - Solar_Rad
+      - Date
+      - Time
+      - Unix_time
+
+- sensor:
+    name: Humidity Outside
+    unique_id: 6b6e0cfb-aa00-468f-8fb2-b5588053fcea
+    command: "python3 /config/ha_meteo_uth/data_fetcher_v3.py"
+    device_class: humidity
+    state_class: measurement
+    unit_of_measurement: "%"
+    scan_interval: 600 # Fetch every 10 minutes
+    value_template: "{{ value_json.Out_Hum | int }}"
+    json_attributes:
+      - Out_Hum
+      - In_Hum
+
+- sensor:
+    name: Lab04 luminosity
+    unique_id: cd732d60-65ec-46ae-a04a-2ce26fffaa49
+    command: "python3 /config/get_lab04_lux.py"
+    device_class: ILLUMINANCE
+    state_class: measurement
+    unit_of_measurement: "lx"
+    scan_interval: 60 # Fetch every 1 minutes
+    value_template: "{{ value_json.lux | int }}"
+    json_attributes:
+      - lux
+      - illumination
+      - temp
+      - time
+      - unixtime
+
