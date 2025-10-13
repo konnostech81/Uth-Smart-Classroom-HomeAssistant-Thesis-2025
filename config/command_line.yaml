@@ -1,6 +1,6 @@
 - sensor:
     name: Temperature Outside
-    unique_id: a4c570c6-5eee-42a4-9a83-1b11d74a5136
+    unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
     command: "python3 /config/ha_meteo_uth/data_fetcher_v3.py"
     device_class: temperature
     state_class: measurement
@@ -21,7 +21,7 @@
 
 - sensor:
     name: Humidity Outside
-    unique_id: 6b6e0cfb-aa00-468f-8fb2-b5588053fcea
+    unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
     command: "python3 /config/ha_meteo_uth/data_fetcher_v3.py"
     device_class: humidity
     state_class: measurement
@@ -34,7 +34,7 @@
 
 - sensor:
     name: Lab04 luminosity
-    unique_id: cd732d60-65ec-46ae-a04a-2ce26fffaa49
+    unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
     command: "python3 /config/get_lab04_lux.py"
     device_class: ILLUMINANCE
     state_class: measurement
