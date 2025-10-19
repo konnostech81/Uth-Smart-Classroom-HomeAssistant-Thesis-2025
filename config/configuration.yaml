@@ -1,0 +1,30 @@
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+command_line: !include command_line.yaml
+sensor: !include sensors.yaml
+template: !include templates.yaml
+
+
+#testing
+rest:
+  - resource: "https://greendigital.uth.gr/data/meteo48h.csv.txt"
+    sensor:
+      - name: "temp_in_rest"
+        value_template: '{{ value.split(",")[-11] }}'
+        unit_of_measurement: "°C"
+        device_class: temperature
+        icon: mdi:thermometer
+
+      - name: "hum_out_rest"
+        value_template: '{{ value.split(",")[-33] }}'
+        unit_of_measurement: "%"
+        device_class: humidity
+        icon: mdi:water-percent
