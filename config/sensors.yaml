@@ -1,0 +1,9 @@
+# testing
+- platform: rest
+  resource: "https://greendigital.uth.gr/data/meteo48h.csv.txt"
+  name: "temp_out_rest"
+  value_template: '{{ value.split(",")[-36] }}'
+  unit_of_measurement: "°C"
+  device_class: temperature
+  icon: mdi:thermometer
+  scan_interval: 600 # Fetch every 10 minutes
