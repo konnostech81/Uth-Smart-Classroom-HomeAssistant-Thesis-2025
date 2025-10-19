@@ -1,0 +1,177 @@
+#Sensors
+- sensor:
+    # Lab 04
+    - name: "Lab04 Temperature"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      device_class: temperature
+      state_class: measurement
+      icon: mdi:thermometer
+      unit_of_measurement: "°C"
+      state: >-
+        {{ state_attr("sensor.lab04_luminosity", "temp") | float }}
+
+    - name: "Lab04 Illumination"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      icon: mdi:sun-wireless
+      state: >-
+        {{ state_attr("sensor.lab04_luminosity", "illumination") }}
+
+    # Campus Meteo
+    - name: "Humidity Inside"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      device_class: humidity
+      state_class: measurement
+      icon: mdi:water-percent
+      unit_of_measurement: "%"
+      state: >-
+        {{ state_attr("sensor.campus_humidity_outside", "In_Hum") | int }}
+
+    - name: "Temperature Inside"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      device_class: temperature
+      state_class: measurement
+      icon: mdi:thermometer
+      unit_of_measurement: "°C"
+      state: >-
+        {{ state_attr("sensor.campus_temperature_outside", "In_Temp") | float }}
+
+    - name: "Solar Radiation"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      device_class: irradiance
+      state_class: measurement
+      unit_of_measurement: "W/m²"
+      icon: mdi:weather-sunny
+      state: >-
+        {{ state_attr("sensor.campus_temperature_outside", "Solar_Rad") | int }}
+
+    - name: "Dew Approximate"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      device_class: temperature
+      state_class: measurement
+      icon: mdi:thermometer-alert
+      unit_of_measurement: "°C"
+      state: >-
+        {{ ( states('sensor.temperature_inside') | float - ((100 - states('sensor.humidity_inside') | int) / 5)) | float }}
+
+    - name: "Dew Temperature"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      device_class: temperature
+      state_class: measurement
+      icon: mdi:thermometer-alert
+      unit_of_measurement: "°C"
+      state: >-
+        {{ (( (237.7 * (((17.27*(states('sensor.temperature_inside') | float))/(237.7+(states('sensor.temperature_inside') | float)))+log(((states('sensor.humidity_inside') | int)/100),e))) / (17.27 - (((17.27*(states('sensor.temperature_inside') | float))/(237.7+(states('sensor.temperature_inside') | float)))+log(((states('sensor.humidity_inside') | int)/100),e)))) | float) | round(1, "ceil", 0) }}
+
+    #helpers
+    - name: "HELPER Solar Radiation"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      state_class: measurement
+      icon: mdi:weather-sunny
+      state: >-
+        {{ state_attr("sensor.campus_temperature_outside", "Solar_Rad") | int }}
+
+    - name: "HELPER Lab04 Luminosity"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      state_class: measurement
+      icon: mdi:weather-sunny
+      state: >-
+        {{state_attr("sensor.lab04_luminosity","lux") }}
+
+    - name: "Water Condensation Sensor"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      icon: mdi:snowflake-thermometer
+      state: >-
+        {% set dew_temp = states("sensor.dew_temperature") %}
+        {% set in_temp = states("sensor.temperature_inside") %}
+        {% if dew_temp not in ['unknown', 'unavailable', 'none'] and in_temp not in ['unknown', 'unavailable', 'none'] %}
+          {% if dew_temp | float >= in_temp | float %}
+            Yes
+          {% else %}
+            No
+          {% endif %}
+        {% else %}
+          unavailable
+        {% endif %}
+
+    - name: "Condensation Message"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      icon: mdi:snowflake-thermometer
+      state: >-
+        {% set dew_temp = states("sensor.dew_temperature") %}
+        {% set in_temp = states("sensor.temperature_inside") %}
+        {% if dew_temp | float >= in_temp | float %}
+          Warning: The dew point is below freezing! Water condensation may appear
+        {% else %}
+          There is no water condensation on windows
+        {% endif %}
+
+    - name: "Selected Shutter Position"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      icon: mdi:window-shutter-alert
+      state: >-
+        {% set shutter = states('input_select.select_shutter') %}
+        {% if shutter == 'NE' %}
+          {{ states('input_number.eastern_shutters_position') | int }}
+        {% elif shutter == 'NW1' %}
+          {{ states('input_number.western_blinds_position_1') | int }}
+        {% elif shutter == 'NW2' %}
+          {{ states('input_number.western_blinds_position_2') | int }}
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Selected Shutter Power"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      icon: mdi:lightning-bolt
+      state: >-
+        {% set shutter = states('input_select.select_shutter') %}
+        {% if shutter == 'NE' %}
+          {% set power = states('sensor.lab04_eastern_window_shutters_power') %}
+        {% elif shutter == 'NW1' %}
+          {% set power = states('sensor.lab04_western_window_shutters_1_power') %}
+        {% elif shutter == 'NW2' %}
+          {% set power = states('sensor.lab04_western_window_shutters_2_power') %}
+        {% else %}
+          {% set power = 'unavailable' %}
+        {% endif %}
+
+        {% if power not in ['unknown', 'unavailable', 'none'] %}
+          {{ power | float }}
+        {% else %}
+          unavailable
+        {% endif %}
+
+    - name: "Selected Shutter"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      icon: mdi:form-select
+      state: >
+        {% set shutter = states('input_select.select_shutter') %}
+        {% if shutter == 'NE' %}
+          cover.lab04_eastern_window_shutters
+        {% elif shutter == 'NW1' %}
+          cover.lab04_western_window_shutters_1
+        {% elif shutter == 'NW2' %}
+          cover.lab04_western_window_shutters_2
+        {% else %}
+          unknown
+        {% endif %}
+
+    - name: "Total Energy Cost"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      icon: mdi:currency-eur
+      state_class: measurement
+      unit_of_measurement: "EUR"
+      availability: >-
+        {{ states('input_number.current_energy_price') not in ['unknown','unavailable']
+            and states('sensor.total_energy_consumption') not in ['unknown','unavailable'] }}
+      state: >-
+        {{((states('sensor.total_energy_consumption') | float) * (states('input_number.current_energy_price') | float)) | round(2)}}
+
+#Binary_sensors
+- binary_sensor:
+    - name: "Water Condensation Risk"
+      unique_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx # (UUID - Hidden) To copy this template, you need to generate your own UUID
+      device_class: moisture
+      icon: mdi:snowflake-thermometer
+      state: >-
+        {{ (states('sensor.dew_temperature') | float) >= (states('sensor.temperature_inside') | float) }}
