@@ -1,0 +1,591 @@
+- id: 'xxxxxxxxxxxxx' # (Hidden) Automation id
+  alias: Notify on Dew Point change
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - sensor.water_condensation_sensor
+    from:
+    to:
+  - trigger: homeassistant
+    event: start
+    enabled: true
+  conditions: []
+  actions:
+  - if:
+    - condition: state
+      entity_id: binary_sensor.water_condensation_risk
+      state: 'on'
+    then:
+    - action: notify.persistent_notification
+      metadata: {}
+      data:
+        message: 'Warning: The dew point is below freezing! Water condensation may
+          appear'
+        title: Water condensation
+    else:
+    - action: notify.persistent_notification
+      metadata: {}
+      data:
+        message: There is no water condensation on windows anymore.
+        title: Water condensation
+  mode: single
+- id: 'xxxxxxxxxxxxx' # (Hidden) Automation id
+  alias: 'Manual override the cover automation '
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.lab04_eastern_window_shutters_input_0_input
+    - binary_sensor.lab04_eastern_window_shutters_input_1_input
+    - binary_sensor.lab04_western_window_shutters_1_input_0_input
+    - binary_sensor.lab04_western_window_shutters_1_input_1_input
+    - binary_sensor.lab04_western_window_shutters_2_nput_0_input
+    - binary_sensor.lab04_western_window_shutters_2_input_1_input
+    from: 'off'
+    to: 'on'
+  conditions: []
+  actions:
+  - action: automation.turn_off
+    metadata: {}
+    data:
+      stop_actions: true
+    target:
+      entity_id: automation.lab04_shades_automation
+  mode: restart
+- id: 'xxxxxxxxxxxxx' # (Hidden) Automation id
+  alias: Lab04 shutters overload protection
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - cover.lab04_shutters
+    to: opening
+  conditions:
+  - condition: state
+    entity_id: cover.lab04_shutters
+    state: opening
+  actions:
+  - choose:
+    - conditions:
+      - condition: or
+        conditions:
+        - condition: numeric_state
+          entity_id: sensor.lab04_eastern_window_shutters_power
+          above: 167
+        - condition: numeric_state
+          entity_id: input_number.eastern_shutters_position
+          above: 9
+      sequence:
+      - action: cover.stop_cover
+        metadata: {}
+        data: {}
+        target:
+          entity_id: cover.lab04_eastern_window_shutters
+    - conditions:
+      - condition: or
+        conditions:
+        - condition: numeric_state
+          entity_id: input_number.western_blinds_position_1
+          above: 9
+        - condition: numeric_state
+          entity_id: sensor.lab04_western_window_shutters_1_power
+          above: 167
+      sequence:
+      - action: cover.stop_cover
+        metadata: {}
+        data: {}
+        target:
+          entity_id: cover.lab04_western_window_shutters_1
+    - conditions:
+      - condition: or
+        conditions:
+        - condition: numeric_state
+          entity_id: sensor.lab04_western_window_shutters_2_power
+          above: 165
+        - condition: numeric_state
+          entity_id: input_number.western_blinds_position_2
+          above: 9
+      sequence:
+      - action: cover.stop_cover
+        metadata: {}
+        data: {}
+        target:
+          entity_id: cover.lab04_western_window_shutters_2
+  mode: single
+- id: 'xxxxxxxxxxxxx' # (Hidden) Automation id
+  alias: Lab04 Shutters Automation
+  description: ''
+  triggers:
+  - trigger: time_pattern
+    minutes: /2
+  conditions: []
+  actions:
+  - action: script.turn_on
+    metadata: {}
+    data: {}
+    target:
+      entity_id: script.calibrate_shutters_positions
+  - wait_for_trigger:
+    - trigger: state
+      entity_id:
+      - script.calibrate_shutters_positions
+      to: 'off'
+  - choose:
+    - conditions:
+      - condition: numeric_state
+        entity_id: sensor.lab04_temperature
+        below: 20
+        enabled: true
+      - condition: numeric_state
+        entity_id: sensor.solar_radiation
+        above: 200
+      - condition: numeric_state
+        entity_id: sensor.lab04_luminosity
+        below: 270
+      - condition: numeric_state
+        entity_id: sensor.shutters_position_all
+        below: 9
+      sequence:
+      - action: cover.open_cover
+        metadata: {}
+        data: {}
+        target:
+          entity_id:
+          - cover.lab04_shutters
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 2
+          milliseconds: 0
+      - action: cover.stop_cover
+        metadata: {}
+        data: {}
+        target:
+          entity_id: cover.lab04_shutters
+      alias: Open
+    - conditions:
+      - condition: numeric_state
+        entity_id: sensor.lab04_luminosity
+        above: 350
+      - condition: numeric_state
+        entity_id: sensor.solar_radiation
+        above: 200
+      - condition: numeric_state
+        entity_id: sensor.lab04_temperature
+        above: 27
+      sequence:
+      - action: cover.close_cover
+        metadata: {}
+        data: {}
+        target:
+          entity_id:
+          - cover.lab04_shutters
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 2
+          milliseconds: 0
+      - action: cover.stop_cover
+        metadata: {}
+        data: {}
+        target:
+          entity_id:
+          - cover.lab04_shutters
+      alias: Close
+    - conditions:
+      - condition: time
+        after: '21:00:00'
+        before: 07:00:00
+      sequence:
+      - if:
+        - condition: not
+          conditions:
+          - condition: state
+            entity_id: cover.lab04_shutters
+            state: closed
+        then:
+        - action: cover.close_cover
+          metadata: {}
+          data: {}
+          target:
+            entity_id:
+            - cover.lab04_shutters
+      alias: Close at night
+  mode: single
+- id: 'xxxxxxxxxxxxx' # (Hidden) Automation id
+  alias: Track Easter Shutters position
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - cover.lab04_eastern_window_shutters
+    from:
+    to: opening
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 1
+  - trigger: state
+    entity_id:
+    - cover.lab04_eastern_window_shutters
+    from:
+    to: closing
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 1
+  conditions: []
+  actions:
+  - repeat:
+      sequence:
+      - action: input_number.increment
+        metadata: {}
+        data: {}
+        target:
+          entity_id: input_number.eastern_shutters_position
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 2
+      while:
+      - condition: state
+        entity_id: cover.lab04_eastern_window_shutters
+        state: opening
+  - parallel:
+    - repeat:
+        sequence:
+        - action: input_number.decrement
+          metadata: {}
+          data: {}
+          target:
+            entity_id: input_number.eastern_shutters_position
+        - delay:
+            hours: 0
+            minutes: 0
+            seconds: 2
+            milliseconds: 0
+        while:
+        - condition: state
+          entity_id: cover.lab04_eastern_window_shutters
+          state: closing
+    - if:
+      - condition: state
+        entity_id: cover.lab04_eastern_window_shutters
+        state: closing
+      - condition: numeric_state
+        entity_id: sensor.lab04_eastern_window_shutters_power
+        below: 0.1
+      then:
+      - action: input_number.set_value
+        metadata: {}
+        data:
+          value: 0
+        target:
+          entity_id: input_number.eastern_shutters_position
+  mode: restart
+- id: 'xxxxxxxxxxxxx' # (Hidden) Automation id
+  alias: Track western shutters 1 position
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - cover.lab04_western_window_shutters_1
+    from:
+    to:
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 1
+  conditions: []
+  actions:
+  - repeat:
+      sequence:
+      - action: input_number.increment
+        metadata: {}
+        data: {}
+        target:
+          entity_id: input_number.western_blinds_position_1
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 2
+          milliseconds: 0
+      while:
+      - condition: state
+        entity_id: cover.lab04_western_window_shutters_1
+        state: opening
+  - repeat:
+      sequence:
+      - action: input_number.decrement
+        metadata: {}
+        data: {}
+        target:
+          entity_id: input_number.western_blinds_position_1
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 2
+          milliseconds: 0
+      while:
+      - condition: state
+        entity_id: cover.lab04_western_window_shutters_1
+        state: closing
+  mode: restart
+- id: 'xxxxxxxxxxxxx' # (Hidden) Automation id
+  alias: Track western shutters 2 position
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - cover.lab04_western_window_shutters_2
+    from:
+    to:
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 1
+  conditions: []
+  actions:
+  - repeat:
+      sequence:
+      - action: input_number.increment
+        metadata: {}
+        data: {}
+        target:
+          entity_id: input_number.western_blinds_position_2
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 2
+          milliseconds: 0
+      while:
+      - condition: state
+        entity_id: cover.lab04_western_window_shutters_2
+        state: opening
+  - repeat:
+      sequence:
+      - action: input_number.decrement
+        metadata: {}
+        data: {}
+        target:
+          entity_id: input_number.western_blinds_position_2
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: 2
+          milliseconds: 0
+      while:
+      - condition: state
+        entity_id: cover.lab04_western_window_shutters_2
+        state: closing
+  mode: restart
+- id: 'xxxxxxxxxxxxx' # (Hidden) Automation id
+  alias: Lab04 shutters availability guard
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - cover.lab04_eastern_window_shutters
+    - cover.lab04_western_window_shutters_1
+    - cover.lab04_western_window_shutters_2
+    to: unknown
+  - trigger: state
+    entity_id:
+    - cover.lab04_eastern_window_shutters
+    - cover.lab04_western_window_shutters_1
+    - cover.lab04_western_window_shutters_2
+    to: unavailable
+  conditions: []
+  actions:
+  - parallel:
+    - if:
+      - condition: state
+        entity_id: automation.lab04_shades_automation
+        state: 'on'
+        enabled: true
+      then:
+      - action: automation.turn_off
+        metadata: {}
+        data:
+          stop_actions: true
+        target:
+          entity_id: automation.lab04_shades_automation
+    - if:
+      - condition: or
+        conditions:
+        - condition: state
+          entity_id: cover.lab04_shutters
+          state: opening
+        - condition: state
+          entity_id: cover.lab04_shutters
+          state: closing
+      then:
+      - action: cover.stop_cover
+        metadata: {}
+        data: {}
+        target:
+          entity_id: cover.lab04_shutters
+  - sequence:
+    - variables:
+        ne_counter: 0
+        nw1_counter: 0
+        nw2_counter: 0
+    - parallel:
+      - repeat:
+          while:
+          - condition: and
+            conditions:
+            - condition: or
+              conditions:
+              - condition: state
+                entity_id: cover.lab04_eastern_window_shutters
+                state: unavailable
+              - condition: state
+                entity_id: cover.lab04_eastern_window_shutters
+                state: unknown
+            - condition: template
+              value_template: '{{ne_counter < 3}}'
+          sequence:
+          - action: homeassistant.reload_config_entry
+            target:
+              device_id:
+              - xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # (Hidden) Device Id
+            data: {}
+          - variables:
+              ne_counter: '{{ ne_counter + 1 }}'
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 5
+              milliseconds: 0
+      - repeat:
+          while:
+          - condition: and
+            conditions:
+            - condition: or
+              conditions:
+              - condition: state
+                entity_id: cover.lab04_western_window_shutters_1
+                state: unavailable
+              - condition: state
+                entity_id: cover.lab04_western_window_shutters_1
+                state: unknown
+            - condition: template
+              value_template: '{{nw1_counter < 3}}'
+          sequence:
+          - action: homeassistant.reload_config_entry
+            target:
+              device_id:
+              - xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # (Hidden) Device Id
+            data: {}
+          - variables:
+              nw1_counter: '{{ nw1_counter + 1 }}'
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 5
+              milliseconds: 0
+      - repeat:
+          while:
+          - condition: and
+            conditions:
+            - condition: or
+              conditions:
+              - condition: state
+                entity_id: cover.lab04_western_window_shutters_2
+                state: unavailable
+              - condition: state
+                entity_id: cover.lab04_western_window_shutters_2
+                state: unknown
+            - condition: template
+              value_template: '{{nw2_counter < 3}}'
+          sequence:
+          - action: homeassistant.reload_config_entry
+            target:
+              device_id:
+              - xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # (Hidden) Device Id
+            data: {}
+          - variables:
+              nw2_counter: '{{ nw2_counter + 1 }}'
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 5
+              milliseconds: 0
+    - if:
+      - condition: or
+        conditions:
+        - condition: state
+          entity_id: cover.lab04_eastern_window_shutters
+          state: unavailable
+        - condition: state
+          entity_id: cover.lab04_eastern_window_shutters
+          state: unknown
+        - condition: state
+          entity_id: cover.lab04_western_window_shutters_1
+          state: unavailable
+        - condition: state
+          entity_id: cover.lab04_western_window_shutters_1
+          state: unknown
+        - condition: state
+          entity_id: cover.lab04_western_window_shutters_2
+          state: unavailable
+        - condition: state
+          entity_id: cover.lab04_western_window_shutters_2
+          state: unknown
+      then:
+      - action: notify.persistent_notification
+        metadata: {}
+        data:
+          message: One or more Lab04 shutter devices are currently unavailable or
+            in an unknown   state. Shutters automation has been paused to prevent
+            unexpected behavior.
+          title: 'Shutter Availability Issue '
+  mode: single
+- id: 'xxxxxxxxxxxxx' # (Hidden) Automation id
+  alias: 'Select shutter '
+  description: ''
+  triggers:
+  - trigger: state
+    entity_id:
+    - input_select.select_shutter
+    from:
+    to:
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_select.select_shutter
+        state: NE
+      sequence:
+      - action: input_text.set_value
+        metadata: {}
+        data:
+          value: cover.lab04_eastern_window_shutters
+        target:
+          entity_id: input_text.selected_shutter
+    - conditions:
+      - condition: state
+        entity_id: input_select.select_shutter
+        state: NW1
+      sequence:
+      - action: input_text.set_value
+        metadata: {}
+        data:
+          value: cover.lab04_western_window_shutters_1
+        target:
+          entity_id: input_text.selected_shutter
+    - conditions:
+      - condition: state
+        entity_id: input_select.select_shutter
+        state: NW2
+      sequence:
+      - action: input_text.set_value
+        metadata: {}
+        data:
+          value: cover.lab04_western_window_shutters_2
+        target:
+          entity_id: input_text.selected_shutter
+  mode: single
