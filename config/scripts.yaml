@@ -1,0 +1,147 @@
+calibrate_shutters_positions:
+  sequence:
+  - variables:
+      east: '{{ states(''input_number.eastern_shutters_position'') | int }}'
+      west1: '{{ states(''input_number.western_blinds_position_1'') | int }}'
+      west2: '{{ states(''input_number.western_blinds_position_2'') | int }}'
+      positions: '{{ [ east, west1, west2 ] }}'
+  - if:
+    - condition: state
+      entity_id: cover.lab04_shutters
+      state: open
+    then:
+    - if:
+      - condition: template
+        value_template: "{% if ((positions | unique | list | length != 1) and (positions
+          | sum > 15)) %}\n  true\n{% else %}\n  false\n{% endif %}\n"
+      then:
+      - parallel:
+        - sequence:
+          - if:
+            - condition: numeric_state
+              entity_id: input_number.eastern_shutters_position
+              below: 9
+            then:
+            - action: cover.open_cover
+              metadata: {}
+              data: {}
+              target:
+                entity_id: cover.lab04_eastern_window_shutters
+          - wait_for_trigger:
+            - trigger: numeric_state
+              entity_id:
+              - input_number.eastern_shutters_position
+              above: 9
+            timeout:
+              hours: 0
+              minutes: 0
+              seconds: 10
+              milliseconds: 0
+          - action: cover.stop_cover
+            metadata: {}
+            data: {}
+            target:
+              entity_id: cover.lab04_eastern_window_shutters
+        - sequence:
+          - if:
+            - condition: numeric_state
+              entity_id: input_number.western_blinds_position_1
+              below: 9
+            then:
+            - action: cover.open_cover
+              metadata: {}
+              data: {}
+              target:
+                entity_id: cover.lab04_western_window_shutters_1
+          - wait_for_trigger:
+            - trigger: numeric_state
+              entity_id:
+              - input_number.western_blinds_position_1
+              above: 9
+            timeout:
+              hours: 0
+              minutes: 0
+              seconds: 10
+              milliseconds: 0
+          - action: cover.stop_cover
+            metadata: {}
+            data: {}
+            target:
+              entity_id: cover.lab04_western_window_shutters_1
+        - sequence:
+          - if:
+            - condition: numeric_state
+              entity_id: input_number.western_blinds_position_2
+              below: 9
+            then:
+            - action: cover.open_cover
+              metadata: {}
+              data: {}
+              target:
+                entity_id: cover.lab04_western_window_shutters_2
+          - wait_for_trigger:
+            - trigger: numeric_state
+              entity_id:
+              - input_number.western_blinds_position_2
+              above: 9
+            timeout:
+              hours: 0
+              minutes: 0
+              seconds: 10
+              milliseconds: 0
+          - action: cover.stop_cover
+            metadata: {}
+            data: {}
+            target:
+              entity_id: cover.lab04_western_window_shutters_2
+      - action: notify.persistent_notification
+        metadata: {}
+        data:
+          title: Shutters update!
+          message: 'Shutters position calibrated. Previous positions was...
+
+            Eastern shutter: {{positions[0]}}
+
+            Western 1 shutter: {{positions[1]}}
+
+            Western 2 shutter: {{positions[2]}}'
+      else:
+      - if:
+        - condition: or
+          conditions:
+          - condition: template
+            value_template: "{% if (positions | unique | list | length != 1) %}\n
+              \ true\n{% else %}\n  false\n{% endif %}\n"
+          - condition: template
+            value_template: "{% if (positions | unique | list | length == 1) and 0
+              in positions%}\n  true\n{% else %}\n  false\n{% endif %}\n"
+        then:
+        - action: cover.close_cover
+          metadata: {}
+          data: {}
+          target:
+            entity_id: cover.lab04_shutters
+        - wait_for_trigger:
+          - trigger: state
+            entity_id:
+            - cover.lab04_shutters
+            to: closed
+          timeout:
+            hours: 0
+            minutes: 0
+            seconds: 10
+            milliseconds: 0
+        - action: notify.persistent_notification
+          metadata: {}
+          data:
+            title: Shutters update!
+            message: 'Shutters position calibrated. Previous positions was...
+
+              Eastern shutter: {{positions[0]}}
+
+              Western 1 shutter: {{positions[1]}}
+
+              Western 2 shutter: {{positions[2]}}'
+    enabled: true
+  alias: Calibrate Shutters Positions
+  description: ''
